@@ -474,8 +474,13 @@ for epoch in range(epochs):
         
         ##printing statistics:
         if (i+1) % np.floor(N/BS) == 0:
-            print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' 
-                   %(epoch+1, epochs, i+1, N//BS, loss.data.item()))
+            
+            if not no_train:
+                print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' 
+                       %(epoch+1, epochs, i+1, N//BS, loss.data.item()))
+            else:
+                print ('Epoch [%d/%d], Step [%d/%d]' 
+                       %(epoch+1, epochs, i+1, N//BS))
             # print('Avg Batch Distance:',state_distance/(i+1))
 
             train_acc()

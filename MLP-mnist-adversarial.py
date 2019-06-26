@@ -207,7 +207,8 @@ class FGSM():
         self.loss = loss
         self.epsilon = epsilon
 
-    def forward(self, x, y_true, model, modelD=None):
+    def forward(self, x, y_true, model, modelD=None):        
+        
         x_adv = x
 
         y = model.forward(x_adv)
@@ -381,8 +382,6 @@ def test_acc_adv_def2():
         break
 
     print('Accuracy of the network on the 10000 test images: %f %%' % (100.0 * np.float(correct) / np.float(total)))
-
-
     
 train_acc()
 test_acc()
@@ -398,6 +397,7 @@ if no_train_all:
         test_acc_adv_def2()        
 
 ###training loop (w/corr):
+loss = 0
 t1 = time()
 for epoch in range(epochs):
 

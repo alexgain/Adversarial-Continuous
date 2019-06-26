@@ -30,6 +30,7 @@ parser.add_argument('--save', type = int, default=0)
 parser.add_argument('--no_train', type = int, default=1)
 parser.add_argument('--no_train_all', type = int, default=0)
 parser.add_argument('--loadD', type = int, default=0)
+parser.add_argument('--loadD1', type = int, default=0)
 parser.add_argument('--N2', type = int, default=200)
 parser.add_argument('--epochs', type = int, default=2000)
 parser.add_argument('--LR', type = float, default=0.01)
@@ -49,6 +50,7 @@ save = args.save
 no_train = args.no_train
 no_train_all = args.no_train_all
 loadD = args.loadD
+loadD1 = args.loadD1
 
 N2 = args.N2
 epochs = args.N2
@@ -148,6 +150,44 @@ class Net(nn.Module):
 
         return out
 
+    def forward1(self, input_data):
+
+        out = self.relu(self.ff1(input_data)) #input
+
+        return out
+
+    def forward2(self, input_data):
+
+        out = self.relu(self.ff1(input_data)) #input
+        out = self.relu(self.ff2(out)) #hidden layers
+        
+        return out
+
+    def forward1mod(self, input_data, vec):
+
+        out = self.relu(self.ff1(input_data)) #input
+        out += vec
+        out = self.relu(self.ff2(out)) #hidden layers
+        out = self.relu(self.ff3(out))
+        out = self.relu(self.ff4(out))
+        out = self.relu(self.ff5(out))
+        out = self.ff_out(out)
+
+        return out
+
+    def forward2mod(self, input_data, vec1, vec2):
+
+        out = self.relu(self.ff1(input_data)) #input
+        out += vec1
+        out = self.relu(self.ff2(out)) #hidden layers
+        out += vec2
+        out = self.relu(self.ff3(out))
+        out = self.relu(self.ff4(out))
+        out = self.relu(self.ff5(out))
+        out = self.ff_out(out)
+
+        return out
+
 
 class NetD(nn.Module):
     def __init__(self, input_size, width, num_classes):
@@ -202,6 +242,13 @@ if loadD:
 if cuda_boole:
     my_netD = my_netD.cuda()
 
+my_netD1 = Net(input_size, widthD, width)
+if loadD1:
+    # my_netD.load_state_dict(torch.load('defense_trained.state'))
+    my_netD1 =torch.load('defense_trained1.state')
+if cuda_boole:
+    my_netD1 = my_netD1.cuda()
+
 
 ###                       ###
 ### Loss and optimization ###
@@ -216,6 +263,7 @@ loss_metric = nn.CrossEntropyLoss()
 ##optimizer = torch.optim.RMSprop(my_net.parameters(), lr = 0.00001, momentum = 0.8)
 optimizer = torch.optim.Adam(my_net.parameters(), lr = 0.001)
 optimizerD = torch.optim.Adam(my_netD.parameters(), lr = 0.001)
+optimizerD1 = torch.optim.Adam(my_netD1.parameters(), lr = 0.001)
 
 ###                         ###
 ### Adversarial Attack code ###
@@ -440,7 +488,7 @@ for epoch in range(epochs):
 
         ##data preprocessing for optimization purposes:        
         x = Variable(x,requires_grad=True)
-        x_adv = adv_attack.forward(x, Variable(y), my_net, None)
+        x_adv = adv_attack.forward(x, Variable(y), my_net, my_netD)
 
         ###regular BP gradient update:
         if not no_train:

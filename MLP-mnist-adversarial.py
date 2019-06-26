@@ -35,7 +35,7 @@ parser.add_argument('--epochs', type = int, default=2000)
 parser.add_argument('--LR', type = float, default=0.01)
 parser.add_argument('--width', type = int, default=20)
 parser.add_argument('--widthD', type = int, default=500)
-parser.add_argument('--pgd_iters', type = int, default=12)
+parser.add_argument('--iters', type = int, default=12)
 
 args = parser.parse_args()
 

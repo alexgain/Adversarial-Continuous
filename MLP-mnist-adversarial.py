@@ -16,26 +16,45 @@ import gc
 
 from sklearn.preprocessing import normalize
 
+import argparse
+
 np.random.seed(1)
 
 cuda_boole = torch.cuda.is_available()
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--N', type = int, default=60000)
+parser.add_argument('--BS', type = int, default=128)
+parser.add_argument('--save', type = int, default=0)
+parser.add_argument('--no_train', type = int, default=1)
+parser.add_argument('--no_train_all', type = int, default=0)
+parser.add_argument('--loadD', type = int, default=0)
+parser.add_argument('--N2', type = int, default=200)
+parser.add_argument('--epochs', type = int, default=2000)
+parser.add_argument('--LR', type = float, default=0.01)
+parser.add_argument('--width', type = int, default=20)
+parser.add_argument('--widthD', type = int, default=500)
+parser.add_argument('--pgd_iters', type = int, default=12)
+
+args = parser.parse_args()
 
 ###                               ###
 ### Data import and preprocessing ###
 ###                               ###
 
-N = 60000
-BS = 128
-save = False
-no_train = True
-no_train_all = False
-loadD = False
+N = args.N
+BS = args.BS
+save = args.save
+no_train = args.no_train
+no_train_all = args.no_train_all
+loadD = args.loadD
 
-N2 = 200
-epochs = 2000
-LR = 0.01
-width = 20
-widthD = 500
+N2 = args.N2
+epochs = args.N2
+LR = args.LR
+width = args.width
+widthD = args.widthD
 
 
 transform_data = transforms.ToTensor()
@@ -272,7 +291,7 @@ class IFGSM():
 
 
 # adv_attack = FGSM(loss_metric, 0.3)
-adv_attack = IFGSM(loss_metric, epsilon = 0.3, iters = 12, alpha=0.3)
+adv_attack = IFGSM(loss_metric, epsilon = 0.3, iters = args.iters, alpha=0.3)
 
 ###                 ###
 ### Attractor Algs. ###

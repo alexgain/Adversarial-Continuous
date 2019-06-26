@@ -54,7 +54,7 @@ loadD = args.loadD
 loadD1 = args.loadD1
 
 N2 = args.N2
-epochs = args.N2
+epochs = args.epochs
 LR = args.LR
 width = args.width
 widthD = args.widthD

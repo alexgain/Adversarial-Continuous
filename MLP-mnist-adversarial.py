@@ -460,11 +460,11 @@ for epoch in range(epochs):
         optimizerD.step()        
 
         ###Defense network update 2:
-        optimizerD.zero_grad()
-        outputsD = my_netD(x)        
-        lossD2 = ((outputsD - 0)**2).mean()
-        lossD2.backward()
-        optimizerD.step()        
+        # optimizerD.zero_grad()
+        # outputsD = my_netD(x)        
+        # lossD2 = ((outputsD - 0)**2).mean()
+        # lossD2.backward()
+        # optimizerD.step()        
                 
         ##performing update:
 

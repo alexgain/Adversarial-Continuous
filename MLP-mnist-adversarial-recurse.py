@@ -273,9 +273,9 @@ class IFGSM():
             x.requires_grad = True
             # x_adv.requires_grad = True
             y = model.forward(x)
-            if modelD is not None:
-                for net in modelD:
-                    y += net(x)
+            # if modelD is not None:
+            #     for net in modelD:
+            #         y += net(x)
 
             J = self.loss(y,y_true)# - 1*bap_val(0)
 
@@ -491,13 +491,13 @@ for epoch in range(epochs):
             optimizerDr[K].step()
 
         # for K in range(K1):
-        # for K in range(args.recurse):
-        #     optimizerDr[K].zero_grad()
-        #     lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
-        #     # lossD = ((outputsr[K+1] - outputsr[0])**2).mean()
-        #     # lossD = ((outputsr[K+1] - 0)**2).mean()
-        #     lossD.backward(retain_graph=True)
-        #     optimizerDr[K].step()
+        for K in range(args.recurse):
+            optimizerDr[K].zero_grad()
+            lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
+            # lossD = ((outputsr[K+1] - outputsr[0])**2).mean()
+            # lossD = ((outputsr[K+1] - 0)**2).mean()
+            lossD.backward(retain_graph=True)
+            optimizerDr[K].step()
 
         # for K in range(K1):
         #     optimizerDr[K].step()

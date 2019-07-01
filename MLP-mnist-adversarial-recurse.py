@@ -542,8 +542,8 @@ for epoch in range(epochs):
             ## For grey-box:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
-                lossD = ((outputs_advr[K+1] - outputsr[K])**2).mean()
-                lossD.backward(retain_graph=True)
+                lossD1 = ((outputs_advr[K+1] - outputsr[K])**2).mean()
+                lossD1.backward(retain_graph=True)
                 optimizerDr[K].step()
     
             ## For independent adv robustness:
@@ -552,15 +552,15 @@ for epoch in range(epochs):
                 outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy()))
                 if cuda_boole:
                     outputs_advr[K+1] = outputs_advr[K+1].cuda()                
-                lossD = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
-                lossD.backward(retain_graph=True)
+                lossD2 = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
+                lossD2.backward(retain_graph=True)
                 optimizerDr[K].step()
 
             ## For getting vanilla samples correct:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
-                lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
-                lossD.backward(retain_graph=True)
+                lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
+                lossD3.backward(retain_graph=True)
                 optimizerDr[K].step()
 
                
@@ -568,8 +568,8 @@ for epoch in range(epochs):
             if (i+1) % np.floor(N/BS) == 0:
                 
                 if not no_train:
-                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' 
-                           %(epoch+1, epochs, i+1, N//BS, loss.data.item()))
+                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Loss: %.4f, Loss: %.4f' 
+                           %(epoch+1, epochs, i+1, N//BS, lossD1.data.item(),lossD2.data.item(),lossD3.data.item()))
                 else:
                     print ('Epoch [%d/%d], Step [%d/%d]' 
                            %(epoch+1, epochs, i+1, N//BS))
@@ -581,7 +581,7 @@ for epoch in range(epochs):
                 test_acc_adv_def(weak=False)
                 test_acc_adv_def(weak=True)
                 test_acc_adv_def2()            
-                print("Defense net minibatch loss:",lossD.data.item())
+                print("Defense net minibatch loss:",lossD2.data.item())
     
         ##time-keeping 2:
         time2 = time()

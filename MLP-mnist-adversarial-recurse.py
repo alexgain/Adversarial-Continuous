@@ -39,9 +39,9 @@ parser.add_argument('--iters', type = int, default=12)
 parser.add_argument('--recurse', type = int, default=4)
 parser.add_argument('--fgsm', type = int, default=0)
 parser.add_argument('--d_train', type = int, default=0)
-parser.add_argument('--alpha1', type = float, default=0)
-parser.add_argument('--alpha2', type = float, default=0)
-parser.add_argument('--alpha3', type = float, default=0)
+parser.add_argument('--alpha1', type = float, default=1)
+parser.add_argument('--alpha2', type = float, default=1)
+parser.add_argument('--alpha3', type = float, default=1)
 
 args = parser.parse_args()
 

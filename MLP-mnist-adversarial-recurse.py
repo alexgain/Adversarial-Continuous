@@ -544,8 +544,11 @@ for epoch in range(epochs):
 
             ## all together:
             for K in range(args.recurse):
-                optimizerDr[K].zero_grad()
+                optimizerDr[K].zero_grad()                
                 lossD1 = ((outputs_advr[K+1] - outputsr[K])**2).mean()
+                outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy()))
+                if cuda_boole:
+                    outputs_advr[K+1] = outputs_advr[K+1].cuda()                                
                 lossD2 = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
                 lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
                 loss = args.alpha1*lossD1 + args.alpha2*lossD2 + args.alpha3*lossD3

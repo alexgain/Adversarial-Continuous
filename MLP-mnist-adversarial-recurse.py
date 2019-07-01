@@ -38,7 +38,7 @@ parser.add_argument('--widthD', type = int, default=500)
 parser.add_argument('--iters', type = int, default=12)
 parser.add_argument('--recurse', type = int, default=4)
 parser.add_argument('--fgsm', type = int, default=0)
-parser.add_argument('--dtrain', type = int, default=0)
+parser.add_argument('--d_train', type = int, default=0)
 
 args = parser.parse_args()
 
@@ -593,7 +593,7 @@ for epoch in range(epochs):
     
             ##data preprocessing for optimization purposes:
             x_adv_orig = adv_attack.forward(x, Variable(y), my_net, recurse_nets, weak=True)
-            x_adv_true = adv_attack_d.forward(x, Variable(y), my_net, recurse_nets)
+            x_adv_true = adv_attack.forward(x, Variable(y), my_net, recurse_nets)
         
             # outputs = my_net.forward(x)
             # outputs_adv = my_net.forward(x_adv_orig)

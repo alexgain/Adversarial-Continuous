@@ -209,6 +209,10 @@ recurse_nets = [Net(input_size, widthD, num_classes) for i in range(args.recurse
 if cuda_boole:
     recurse_nets = [net.cuda() for net in recurse_nets]
 
+if loadD:
+    for K in range(len(recurse_nets)):
+        recurse_nets[K].load_state_dict(torch.load('defense_trained.state'))
+
 ###                       ###
 ### Loss and optimization ###
 ###                       ###

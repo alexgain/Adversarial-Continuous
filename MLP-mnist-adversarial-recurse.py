@@ -549,7 +549,7 @@ for epoch in range(epochs):
             ## For independent adv robustness:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
-                outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy(),requires_grad=False))
+                outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy()))
                 if cuda_boole:
                     outputs_advr[K+1] = outputs_advr[K+1].cuda()                
                 lossD = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()

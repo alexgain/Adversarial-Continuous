@@ -546,6 +546,13 @@ for epoch in range(epochs):
                 lossD1.backward(retain_graph=True)
                 optimizerDr[K].step()
     
+            ## For getting vanilla samples correct:
+            for K in range(args.recurse):
+                optimizerDr[K].zero_grad()
+                lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
+                lossD3.backward(retain_graph=True)
+                optimizerDr[K].step()
+
             ## For independent adv robustness:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
@@ -556,13 +563,6 @@ for epoch in range(epochs):
                 lossD2.backward(retain_graph=True)
                 optimizerDr[K].step()
 
-            ## For getting vanilla samples correct:
-            for K in range(args.recurse):
-                optimizerDr[K].zero_grad()
-                lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
-                lossD3.backward(retain_graph=True)
-                optimizerDr[K].step()
-
                
             ##printing statistics:
             if (i+1) % np.floor(N/BS) == 0:
@@ -571,8 +571,8 @@ for epoch in range(epochs):
                     print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Loss: %.4f, Loss: %.4f' 
                            %(epoch+1, epochs, i+1, N//BS, lossD1.data.item(),lossD2.data.item(),lossD3.data.item()))
                 else:
-                    print ('Epoch [%d/%d], Step [%d/%d]' 
-                           %(epoch+1, epochs, i+1, N//BS))
+                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Loss: %.4f, Loss: %.4f' 
+                           %(epoch+1, epochs, i+1, N//BS, lossD1.data.item(),lossD2.data.item(),lossD3.data.item()))
                 # print('Avg Batch Distance:',state_distance/(i+1))
     
                 train_acc()

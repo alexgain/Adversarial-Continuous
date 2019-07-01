@@ -38,6 +38,7 @@ parser.add_argument('--widthD', type = int, default=500)
 parser.add_argument('--iters', type = int, default=12)
 parser.add_argument('--recurse', type = int, default=4)
 parser.add_argument('--fgsm', type = int, default=0)
+parser.add_argument('--dtrain', type = int, default=0)
 
 args = parser.parse_args()
 
@@ -266,16 +267,17 @@ class IFGSM():
         else:
             self.alpha = alpha
 
-    def forward(self, x, y_true, model, modelD):
+    def forward(self, x, y_true, model, modelD, weak = True):
         x_adv = x
     
         for k in range(self.iters):
             x.requires_grad = True
             # x_adv.requires_grad = True
             y = model.forward(x)
-            # if modelD is not None:
-            #     for net in modelD:
-            #         y += net(x)
+            if not weak:
+                if modelD is not None:
+                    for net in modelD:
+                        y += net(x)
 
             J = self.loss(y,y_true)# - 1*bap_val(0)
 
@@ -297,10 +299,54 @@ class IFGSM():
 
         return x_adv
 
+class IFGSM_d():
+    def __init__(self, epsilon=0.3, iters=8, alpha=0):
+        self.epsilon = epsilon
+        if iters == 0 :
+            self.iters = int(min(epsilon*255 + 4, 1.25*epsilon*255))
+        else:
+            self.iters = iters
+        if alpha == 0:
+            self.alpha = epsilon/iters
+        else:
+            self.alpha = alpha
+
+    def forward(self, x, y_true, model):
+        x_adv = x
+    
+        for k in range(self.iters):
+            x.requires_grad = True
+            # x_adv.requires_grad = True
+            y = model.forward(x)
+            # if modelD is not None:
+            #     for net in modelD:
+            #         y += net(x)
+
+            J = ((y-y_true)**2).mean()# - 1*bap_val(0)
+
+            if x_adv.grad is not None:
+                    x_adv.grad.data.fill_(0)
+
+            # x_grad = torch.autograd.grad(J, x_adv)[0]
+            x_grad = torch.autograd.grad(J, x)[0]
+            x_adv = x + self.alpha*x_grad.sign_()
+
+            ##clamping:
+            a = torch.clamp(x - self.epsilon, min=0)
+            b = (x_adv>=a).float()*x_adv + (a>x_adv).float()*a
+            c = (b > x+self.epsilon).float()*(x+self.epsilon) + (x+self.epsilon >= b).float()*b
+            x = torch.clamp(c, max=1).detach_()
+            # x_adv = torch.clamp(x_adv, 0, 1) #0-1 clamping
+
+        x_adv = x
+
+        return x_adv
 
 
 # adv_attack = FGSM(loss_metric, 0.3)
 adv_attack = IFGSM(loss_metric, epsilon = 0.3, iters = args.iters, alpha=0.3)
+if args.dtrain:
+    adv_attack_d = IFGSM_d(epsilon = 0.3, iters = args.iters, alpha=0.3)
 if args.fgsm:
     adv_attack = FGSM(loss_metric, 0.3)
 
@@ -443,143 +489,149 @@ for epoch in range(epochs):
     
     state_distance = 0
 
-    ##time-keeping 1:
-    time1 = time()
-
-    for i, (x,y) in enumerate(train_loader):
-        
-        ##some pre-processing:
-        x = x.view(-1,28*28)
-##        y = y.float()
-##        y = y.long()
-##        y = torch.Tensor(to_categorical(y.long().cpu().numpy(),num_classes)) #MSE
-
-        ##cuda:
-        if cuda_boole:
-            x = x.cuda()
-            y = y.cuda()
-
-        ##data preprocessing for optimization purposes:        
-        x = Variable(x,requires_grad=True)
-        x_adv = adv_attack.forward(x, Variable(y), my_net, recurse_nets)
-
-        ###regular BP gradient update:
-        if not no_train:
-            optimizer.zero_grad()
-        outputs = my_net.forward(x)
-        outputs_adv = my_net.forward(x_adv)
-        if not no_train:
-            loss = loss_metric(outputs,y)
-            loss.backward(retain_graph=True)
-            optimizer.step()
-        
-        outputsr = [outputs]
-        outputs_advr = [outputs_adv]
-        # for K in range(K1):
-        for K in range(args.recurse):
-            outputsr.append(outputsr[K] + recurse_nets[K](x))    
-            outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))    
-
-        ##Defense network update 1:
-        # for K in range(K1):
-        for K in range(args.recurse):
-            optimizerDr[K].zero_grad()
-            # lossD = ((outputs_advr[K+1] - (outputsr[K] - outputs_advr[K]))**2).mean()
-            lossD = ((outputs_advr[K+1] - outputsr[K])**2).mean()
-            # lossD = ((outputs_advr[K+1] - outputsr[0])**2).mean()
-            lossD.backward(retain_graph=True)
-            optimizerDr[K].step()
-
-        # for K in range(K1):
-        for K in range(args.recurse):
-            optimizerDr[K].zero_grad()
-            lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
-            # lossD = ((outputsr[K+1] - outputsr[0])**2).mean()
-            # lossD = ((outputsr[K+1] - 0)**2).mean()
-            lossD.backward(retain_graph=True)
-            optimizerDr[K].step()
-
-        # for K in range(K1):
-        #     optimizerDr[K].step()
-            
-            
-        # for 
-
-        ###Defense network update 1:
-        # optimizerD.zero_grad()
-        # outputsD = my_netD(x_adv)        
-        # lossD = ((outputsD - (outputs - outputs_adv))**2).mean()
-        # lossD.backward()
-        
-        # # for K in range(args.recurse):
-        # #     optimizerDr[K].zero_grad()
-        # #     outputsDr = recurse_nets[K](x_adv)
-        # #     lossD = ((outputsD - (outputs - outputs_adv))**2).mean()
-        # #     lossD.backward()
-
-        # ###Defense network update 2:
-        # outputsD = my_netD(x)        
-        # lossD2 = ((outputsD - 0)**2).mean()
-        # lossD2.backward()
-
-
-        # optimizerD.step()        
-                
-        ##performing update:
-
-        ##Performing attractor update:
-        # rand_vec = Variable(torch.randn(*list(x.shape)))
-        # if cuda_boole:
-        #     rand_vec = rand_vec.cuda()
-        # x_pert = x + (eps_ball)*(rand_vec / rand_vec.norm())
-        
-        # optimizer.zero_grad()
-
-        # ##getting two states:
-        # state1 = my_net.forward(x)
-        # state2 = my_net.forward(x_pert)
-
-        # loss2 = LR2*(state1 - state2).norm()
-        # loss2.backward(retain_graph = True)
-                
-        ##performing update:
-        # optimizer.step()
-
-        ##accumulating loss:
-        # state_distance += float(loss.cpu().data.numpy())
-        
-        ##printing statistics:
-        
-        ##printing statistics:
-        if (i+1) % np.floor(N/BS) == 0:
-            
-            if not no_train:
-                print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' 
-                       %(epoch+1, epochs, i+1, N//BS, loss.data.item()))
-            else:
-                print ('Epoch [%d/%d], Step [%d/%d]' 
-                       %(epoch+1, epochs, i+1, N//BS))
-            # print('Avg Batch Distance:',state_distance/(i+1))
-
-            train_acc()
-            test_acc()
-            test_acc_adv()
-            test_acc_adv_def()
-            test_acc_adv_def2()            
-            print("Defense net minibatch loss:",lossD.data.item())
-
-    ##time-keeping 2:
-    time2 = time()
-    print('Elapsed time for epoch:',time2 - time1,'s')
-    print('ETA of completion:',(time2 - time1)*(epochs - epoch - 1)/60,'minutes')
-    print()
-    if save == True:
-        for K in range(len(recurse_nets)):
-            torch.save(recurse_nets[K].state_dict(),'trained_defense%d.state'%K)
+    if not args.d_train:
+        ##time-keeping 1:
+        time1 = time()
     
+        for i, (x,y) in enumerate(train_loader):
+            
+            ##some pre-processing:
+            x = x.view(-1,28*28)
+    ##        y = y.float()
+    ##        y = y.long()
+    ##        y = torch.Tensor(to_categorical(y.long().cpu().numpy(),num_classes)) #MSE
+    
+            ##cuda:
+            if cuda_boole:
+                x = x.cuda()
+                y = y.cuda()
+    
+            ##data preprocessing for optimization purposes:        
+            x = Variable(x,requires_grad=True)
+            x_adv = adv_attack.forward(x, Variable(y), my_net, recurse_nets)
+            
+            ###regular BP gradient update:
+            if not no_train:
+                optimizer.zero_grad()
+            outputs = my_net.forward(x)
+            outputs_adv = my_net.forward(x_adv)
+            if not no_train:
+                loss = loss_metric(outputs,y)
+                loss.backward(retain_graph=True)
+                optimizer.step()
+            
+            outputsr = [outputs]
+            outputs_advr = [outputs_adv]
+            # for K in range(K1):
+            for K in range(args.recurse):
+                outputsr.append(outputsr[K] + recurse_nets[K](x))    
+                outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))    
+    
+            ##Defense network update 1:
+            # for K in range(K1):
+            for K in range(args.recurse):
+                optimizerDr[K].zero_grad()
+                # lossD = ((outputs_advr[K+1] - (outputsr[K] - outputs_advr[K]))**2).mean()
+                lossD = ((outputs_advr[K+1] - outputsr[K])**2).mean()
+                # lossD = ((outputs_advr[K+1] - outputsr[0])**2).mean()
+                lossD.backward(retain_graph=True)
+                optimizerDr[K].step()
+    
+            # for K in range(K1):
+            for K in range(args.recurse):
+                optimizerDr[K].zero_grad()
+                lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
+                # lossD = ((outputsr[K+1] - outputsr[0])**2).mean()
+                # lossD = ((outputsr[K+1] - 0)**2).mean()
+                lossD.backward(retain_graph=True)
+                optimizerDr[K].step()
+               
+            ##printing statistics:
+            if (i+1) % np.floor(N/BS) == 0:
+                
+                if not no_train:
+                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' 
+                           %(epoch+1, epochs, i+1, N//BS, loss.data.item()))
+                else:
+                    print ('Epoch [%d/%d], Step [%d/%d]' 
+                           %(epoch+1, epochs, i+1, N//BS))
+                # print('Avg Batch Distance:',state_distance/(i+1))
+    
+                train_acc()
+                test_acc()
+                test_acc_adv()
+                test_acc_adv_def()
+                test_acc_adv_def2()            
+                print("Defense net minibatch loss:",lossD.data.item())
+    
+        ##time-keeping 2:
+        time2 = time()
+        print('Elapsed time for epoch:',time2 - time1,'s')
+        print('ETA of completion:',(time2 - time1)*(epochs - epoch - 1)/60,'minutes')
+        print()
+        if save == True:
+            for K in range(len(recurse_nets)):
+                torch.save(recurse_nets[K].state_dict(),'trained_defense%d.state'%K)
+    
+    if args.d_train:
+        for i, (x,y) in enumerate(train_loader):
+            
+            ##some pre-processing:
+            x = x.view(-1,28*28)
+    ##        y = y.float()
+    ##        y = y.long()
+    ##        y = torch.Tensor(to_categorical(y.long().cpu().numpy(),num_classes)) #MSE
+    
+            ##cuda:
+            if cuda_boole:
+                x = x.cuda()
+                y = y.cuda()
+    
+            ##data preprocessing for optimization purposes:
+            x_adv_orig = adv_attack.forward(x, Variable(y), my_net, recurse_nets, weak=True)
+            x_adv_true = adv_attack_d.forward(x, Variable(y), my_net, recurse_nets)
+        
+            # outputs = my_net.forward(x)
+            # outputs_adv = my_net.forward(x_adv_orig)
+            
+            # outputsr = [outputs]
+            # outputs_advr = [outputs_adv]
+            # # for K in range(K1):
+            # for K in range(args.recurse):
+            #     outputsr.append(outputsr[K] + recurse_nets[K](x))    
+            #     outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))    
+
+            # for K in range(args.recurse):
+            #     x_adv_true = adv_attack_d.forward(x_adv_orig, recurse_nets[K](x_adv))
+
+            for K in range(args.recurse):
+                optimizerDr[K].zero_grad()
+                lossD = ((recurse_nets[K](x_adv_orig) - recurse_nets[K](x_adv_true))**2).mean()
+                lossD.backward()                
+                optimizerDr[K].step()                
+            # outputsd = [(outputs_advr[K+1] - outputsr[K])**2]
+            # for K in range(args.recurse):
+            #     outputsd.append(((outputs_advr[K+1] - outputsr[K])**2))
+
+                        
+            
+            
+            
 
 t2 = time()
 print((t2 - t1)/60,'total minutes elapsed')
 
 if save == True:
     torch.save(my_net.state_dict(),'trained_model.state')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

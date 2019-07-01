@@ -493,9 +493,13 @@ for epoch in range(epochs):
     
     state_distance = 0
 
+    ##time-keeping 1:
+    time1 = time()
+
+
     if not args.d_train:
-        ##time-keeping 1:
-        time1 = time()
+        # ##time-keeping 1:
+        # time1 = time()
     
         for i, (x,y) in enumerate(train_loader):
             
@@ -512,13 +516,15 @@ for epoch in range(epochs):
     
             ##data preprocessing for optimization purposes:        
             x = Variable(x,requires_grad=True)
-            x_adv = adv_attack.forward(x, Variable(y), my_net, recurse_nets)
+            x_adv = adv_attack.forward(x, Variable(y), my_net, recurse_nets, weak=True)
+            x_adv_true = adv_attack.forward(x, Variable(y), my_net, recurse_nets, weak=False)
             
             ###regular BP gradient update:
             if not no_train:
                 optimizer.zero_grad()
             outputs = my_net.forward(x)
             outputs_adv = my_net.forward(x_adv)
+            outputs_adv_true = my_net.forward(x_adv_true)
             if not no_train:
                 loss = loss_metric(outputs,y)
                 loss.backward(retain_graph=True)
@@ -526,29 +532,34 @@ for epoch in range(epochs):
             
             outputsr = [outputs]
             outputs_advr = [outputs_adv]
+            outputs_advr_true = [outputs_adv_true]
             # for K in range(K1):
             for K in range(args.recurse):
                 outputsr.append(outputsr[K] + recurse_nets[K](x))    
-                outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))    
-    
-            ##Defense network update 1:
-            # for K in range(K1):
+                outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))
+                outputs_advr_true.append(outputs_advr[K] + recurse_nets[K](x_adv_true))
+
+            ## For grey-box:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
-                # lossD = ((outputs_advr[K+1] - (outputsr[K] - outputs_advr[K]))**2).mean()
                 lossD = ((outputs_advr[K+1] - outputsr[K])**2).mean()
-                # lossD = ((outputs_advr[K+1] - outputsr[0])**2).mean()
                 lossD.backward(retain_graph=True)
                 optimizerDr[K].step()
     
-            # for K in range(K1):
+            ## For independent adv robustness:
+            for K in range(args.recurse):
+                optimizerDr[K].zero_grad()
+                lossD = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
+                lossD.backward(retain_graph=True)
+                optimizerDr[K].step()
+
+            ## For getting vanilla samples correct:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
                 lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
-                # lossD = ((outputsr[K+1] - outputsr[0])**2).mean()
-                # lossD = ((outputsr[K+1] - 0)**2).mean()
                 lossD.backward(retain_graph=True)
                 optimizerDr[K].step()
+
                
             ##printing statistics:
             if (i+1) % np.floor(N/BS) == 0:

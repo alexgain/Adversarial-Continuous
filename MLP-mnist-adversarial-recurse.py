@@ -211,7 +211,7 @@ if cuda_boole:
 
 if loadD:
     for K in range(len(recurse_nets)):
-        recurse_nets[K].load_state_dict(torch.load('defense_trained.state'))
+        recurse_nets[K].load_state_dict(torch.load('trained_defense%d.state'%K))
 
 ###                       ###
 ### Loss and optimization ###

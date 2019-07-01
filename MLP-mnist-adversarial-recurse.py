@@ -593,7 +593,7 @@ for epoch in range(epochs):
     
             ##data preprocessing for optimization purposes:
             x_adv_orig = adv_attack.forward(x, Variable(y), my_net, recurse_nets, weak=True)
-            x_adv_true = adv_attack.forward(x, Variable(y), my_net, recurse_nets)
+            x_adv_true = adv_attack.forward(x, Variable(y), my_net, recurse_nets, weak=False)
         
             # outputs = my_net.forward(x)
             # outputs_adv = my_net.forward(x_adv_orig)
@@ -616,9 +616,15 @@ for epoch in range(epochs):
             # outputsd = [(outputs_advr[K+1] - outputsr[K])**2]
             # for K in range(args.recurse):
             #     outputsd.append(((outputs_advr[K+1] - outputsr[K])**2))
-        
+
+        print("Epoch %d:"%epoch)        
         test_acc_adv_def(weak=True)
         test_acc_adv_def(weak=False)
+
+        time2 = time()
+        print('Elapsed time for epoch:',time2 - time1,'s')
+        print('ETA of completion:',(time2 - time1)*(epochs - epoch - 1)/60,'minutes')
+        print()
 
                         
             

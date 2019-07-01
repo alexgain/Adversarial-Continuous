@@ -559,7 +559,7 @@ for epoch in range(epochs):
                 outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy()))
                 if cuda_boole:
                     outputs_advr[K+1] = outputs_advr[K+1].cuda()                
-                lossD2 = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
+                lossD2 = 100*((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
                 lossD2.backward(retain_graph=True)
                 optimizerDr[K].step()
 

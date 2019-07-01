@@ -406,7 +406,7 @@ def test_acc():
 
     print('Accuracy of the network on the 10000 test images: %f %%' % (100.0 * np.float(correct) / np.float(total)))
 
-def test_acc_adv():
+def test_acc_adv(weak=True):
     # Test the Model
     correct = 0
     total = 0
@@ -414,7 +414,7 @@ def test_acc_adv():
         if cuda_boole:
             images, labels = images.cuda(), labels.cuda()
         images = Variable(images.view(-1,28*28), requires_grad=True)
-        images = adv_attack.forward(images, Variable(labels), my_net, recurse_nets)
+        images = adv_attack.forward(images, Variable(labels), my_net, recurse_nets,weak=weak)
         outputs = my_net(images)
         _, predicted = torch.max(outputs.data, 1)
     ##    labels = torch.max(labels.float(),1)[1]
@@ -425,7 +425,7 @@ def test_acc_adv():
 
     print('Accuracy of the network on the 10000 test images: %f %%' % (100.0 * np.float(correct) / np.float(total)))
 
-def test_acc_adv_def():
+def test_acc_adv_def(weak=True):
     # Test the Model
     correct = 0
     total = 0
@@ -433,7 +433,7 @@ def test_acc_adv_def():
         if cuda_boole:
             images, labels = images.cuda(), labels.cuda()
         images = Variable(images.view(-1,28*28), requires_grad=True)
-        images = adv_attack.forward(images, Variable(labels), my_net, recurse_nets)
+        images = adv_attack.forward(images, Variable(labels), my_net, recurse_nets,weak=weak)
         outputs = my_net(images)
         for net in recurse_nets:
             outputs += net(images)
@@ -616,6 +616,9 @@ for epoch in range(epochs):
             # outputsd = [(outputs_advr[K+1] - outputsr[K])**2]
             # for K in range(args.recurse):
             #     outputsd.append(((outputs_advr[K+1] - outputsr[K])**2))
+        
+        test_acc_adv_def(weak=True)
+        test_acc_adv_def(weak=False)
 
                         
             

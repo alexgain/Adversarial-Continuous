@@ -429,16 +429,19 @@ if no_train_all:
 
 ###training loop (w/corr):
 loss = 0
+K1 = 0
 t1 = time()
 for epoch in range(epochs):
 
+    K1 = (K1 + 1)%args.recurse
+    
     state_distance = 0
 
     ##time-keeping 1:
     time1 = time()
 
     for i, (x,y) in enumerate(train_loader):
-
+        
         ##some pre-processing:
         x = x.view(-1,28*28)
 ##        y = y.float()
@@ -466,22 +469,22 @@ for epoch in range(epochs):
         
         outputsr = [outputs]
         outputs_advr = [outputs_adv]
-        for K in range(args.recurse):
+        for K in range(K1):
             outputsr.append(outputsr[K] + recurse_nets[K](x))    
             outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))    
 
         ##Defense network update 1:
-        for K in range(args.recurse):
+        for K in range(K1):
             optimizerDr[K].zero_grad()
             lossD = ((outputs_advr[K+1] - (outputs_advr[K] - outputsr[K]))**2).mean()
             lossD.backward(retain_graph=True)
 
-        for K in range(args.recurse):
+        for K in range(K1):
             # optimizerDr[K].zero_grad()
             lossD = ((outputsr[K+1] - 0)**2).mean()
             lossD.backward(retain_graph=True)
 
-        for K in range(args.recurse):
+        for K in range(K1):
             optimizerDr[K].step()
             
             

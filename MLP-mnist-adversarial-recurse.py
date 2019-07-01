@@ -349,7 +349,7 @@ class IFGSM_d():
 
 # adv_attack = FGSM(loss_metric, 0.3)
 adv_attack = IFGSM(loss_metric, epsilon = 0.3, iters = args.iters, alpha=0.3)
-if args.dtrain:
+if args.d_train:
     adv_attack_d = IFGSM_d(epsilon = 0.3, iters = args.iters, alpha=0.3)
 if args.fgsm:
     adv_attack = FGSM(loss_metric, 0.3)

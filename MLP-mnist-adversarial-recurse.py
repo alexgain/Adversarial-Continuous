@@ -549,6 +549,9 @@ for epoch in range(epochs):
             ## For independent adv robustness:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
+                outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy(),requires_grad=False))
+                if cuda_boole:
+                    outputs_advr[K+1] = outputs_advr[K+1].cuda()                
                 lossD = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
                 lossD.backward(retain_graph=True)
                 optimizerDr[K].step()
@@ -575,7 +578,8 @@ for epoch in range(epochs):
                 train_acc()
                 test_acc()
                 test_acc_adv()
-                test_acc_adv_def()
+                test_acc_adv_def(weak=False)
+                test_acc_adv_def(weak=True)
                 test_acc_adv_def2()            
                 print("Defense net minibatch loss:",lossD.data.item())
     

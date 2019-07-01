@@ -220,7 +220,7 @@ loss_metric = nn.CrossEntropyLoss()
 ##optimizer = torch.optim.RMSprop(my_net.parameters(), lr = 0.00001, momentum = 0.8)
 optimizer = torch.optim.Adam(my_net.parameters(), lr = 0.001)
 # optimizerD = torch.optim.Adam(my_netD.parameters(), lr = 0.001)
-optimizerDr = [torch.optim.Adam(net.parameters(), lr = 0.001) for net in recurse_nets]
+optimizerDr = [torch.optim.Adam(net.parameters(), lr = args.LR) for net in recurse_nets]
 
 ###                         ###
 ### Adversarial Attack code ###
@@ -433,7 +433,8 @@ K1 = 0
 t1 = time()
 for epoch in range(epochs):
 
-    K1 = (K1 + 1)%args.recurse
+    if epoch%2==0:
+        K1 = (K1 + 1)%args.recurse
     
     state_distance = 0
 
@@ -478,14 +479,16 @@ for epoch in range(epochs):
             optimizerDr[K].zero_grad()
             lossD = ((outputs_advr[K+1] - (outputs_advr[K] - outputsr[K]))**2).mean()
             lossD.backward(retain_graph=True)
+            optimizerDr[K].step()
 
         for K in range(K1):
-            # optimizerDr[K].zero_grad()
+            optimizerDr[K].zero_grad()
             lossD = ((outputsr[K+1] - 0)**2).mean()
             lossD.backward(retain_graph=True)
-
-        for K in range(K1):
             optimizerDr[K].step()
+
+        # for K in range(K1):
+        #     optimizerDr[K].step()
             
             
         # for 

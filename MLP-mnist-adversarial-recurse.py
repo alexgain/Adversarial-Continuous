@@ -552,6 +552,7 @@ for epoch in range(epochs):
                 lossD2 = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
                 lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
                 loss = args.alpha1*lossD1 + args.alpha2*lossD2 + args.alpha3*lossD3
+                loss.backward()
                 optimizerDr[K].step()
 
             # ## For grey-box:

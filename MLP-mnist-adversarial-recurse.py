@@ -39,6 +39,9 @@ parser.add_argument('--iters', type = int, default=12)
 parser.add_argument('--recurse', type = int, default=4)
 parser.add_argument('--fgsm', type = int, default=0)
 parser.add_argument('--d_train', type = int, default=0)
+parser.add_argument('--alpha1', type = float, default=0)
+parser.add_argument('--alpha2', type = float, default=0)
+parser.add_argument('--alpha3', type = float, default=0)
 
 args = parser.parse_args()
 
@@ -539,29 +542,38 @@ for epoch in range(epochs):
                 outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))
                 outputs_advr_true.append(outputs_advr[K] + recurse_nets[K](x_adv_true))
 
-            ## For grey-box:
+            ## all together:
             for K in range(args.recurse):
                 optimizerDr[K].zero_grad()
                 lossD1 = ((outputs_advr[K+1] - outputsr[K])**2).mean()
-                lossD1.backward(retain_graph=True)
-                optimizerDr[K].step()
-    
-            ## For getting vanilla samples correct:
-            for K in range(args.recurse):
-                optimizerDr[K].zero_grad()
+                lossD2 = ((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
                 lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
-                lossD3.backward(retain_graph=True)
+                loss = args.alpha1*lossD1 + args.alpha2*lossD2 + args.alpha3*lossD3
                 optimizerDr[K].step()
 
-            ## For independent adv robustness:
-            for K in range(args.recurse):
-                optimizerDr[K].zero_grad()
-                outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy()))
-                if cuda_boole:
-                    outputs_advr[K+1] = outputs_advr[K+1].cuda()                
-                lossD2 = 10*((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
-                lossD2.backward(retain_graph=True)
-                optimizerDr[K].step()
+            # ## For grey-box:
+            # for K in range(args.recurse):
+            #     optimizerDr[K].zero_grad()
+            #     lossD1 = ((outputs_advr[K+1] - outputsr[K])**2).mean()
+            #     lossD1.backward(retain_graph=True)
+            #     optimizerDr[K].step()
+    
+            # ## For getting vanilla samples correct:
+            # for K in range(args.recurse):
+            #     optimizerDr[K].zero_grad()
+            #     lossD3 = ((outputsr[K+1] - outputsr[K])**2).mean()
+            #     lossD3.backward(retain_graph=True)
+            #     optimizerDr[K].step()
+
+            # ## For independent adv robustness:
+            # for K in range(args.recurse):
+            #     optimizerDr[K].zero_grad()
+            #     outputs_advr[K+1] = Variable(torch.Tensor(outputs_advr[K+1].cpu().data.numpy()))
+            #     if cuda_boole:
+            #         outputs_advr[K+1] = outputs_advr[K+1].cuda()                
+            #     lossD2 = 10*((outputs_advr_true[K+1] - outputs_advr[K+1])**2).mean()
+            #     lossD2.backward(retain_graph=True)
+            #     optimizerDr[K].step()
 
                
             ##printing statistics:

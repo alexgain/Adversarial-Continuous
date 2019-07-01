@@ -436,10 +436,10 @@ K1 = 0
 t1 = time()
 for epoch in range(epochs):
 
-    if epoch%10==0:
-        K1 = (K1 + 1)%args.recurse
-    if K1 == 0:
-        K1 = 1
+    # if epoch%10==0:
+    #     K1 = (K1 + 1)%args.recurse
+    # if K1 == 0:
+    #     K1 = 1
     
     state_distance = 0
 
@@ -475,18 +475,21 @@ for epoch in range(epochs):
         
         outputsr = [outputs]
         outputs_advr = [outputs_adv]
-        for K in range(K1):
+        # for K in range(K1):
+        for K in range(args.recurse):
             outputsr.append(outputsr[K] + recurse_nets[K](x))    
             outputs_advr.append(outputs_advr[K] + recurse_nets[K](x_adv))    
 
         ##Defense network update 1:
-        for K in range(K1):
+        # for K in range(K1):
+        for K in range(args.recurse):
             optimizerDr[K].zero_grad()
             lossD = ((outputs_advr[K+1] - (outputs_advr[K] - outputsr[K]))**2).mean()
             lossD.backward(retain_graph=True)
             optimizerDr[K].step()
 
-        for K in range(K1):
+        # for K in range(K1):
+        for K in range(args.recurse):
             optimizerDr[K].zero_grad()
             lossD = ((outputsr[K+1] - 0)**2).mean()
             lossD.backward(retain_graph=True)

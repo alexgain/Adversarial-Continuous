@@ -433,8 +433,10 @@ K1 = 0
 t1 = time()
 for epoch in range(epochs):
 
-    if epoch%2==0:
+    if epoch%10==0:
         K1 = (K1 + 1)%args.recurse
+    if K1 == 0:
+        K1 = 1
     
     state_distance = 0
 

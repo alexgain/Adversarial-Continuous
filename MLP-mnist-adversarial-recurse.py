@@ -275,7 +275,7 @@ class IFGSM():
             y = model.forward(x)
             if modelD is not None:
                 for net in modelD:
-                    y += net(x_adv)
+                    y += net(x)
 
             J = self.loss(y,y_true)# - 1*bap_val(0)
 

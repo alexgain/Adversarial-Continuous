@@ -491,8 +491,8 @@ for epoch in range(epochs):
         # for K in range(K1):
         for K in range(args.recurse):
             optimizerDr[K].zero_grad()
-            # lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
-            lossD = ((outputsr[K+1] - 0)**2).mean()
+            lossD = ((outputsr[K+1] - outputsr[K])**2).mean()
+            # lossD = ((outputsr[K+1] - 0)**2).mean()
             lossD.backward(retain_graph=True)
             optimizerDr[K].step()
 

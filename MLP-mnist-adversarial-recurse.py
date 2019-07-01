@@ -37,6 +37,7 @@ parser.add_argument('--width', type = int, default=20)
 parser.add_argument('--widthD', type = int, default=500)
 parser.add_argument('--iters', type = int, default=12)
 parser.add_argument('--recurse', type = int, default=4)
+parser.add_argument('--fgsm', type = int, default=0)
 
 args = parser.parse_args()
 
@@ -300,6 +301,8 @@ class IFGSM():
 
 # adv_attack = FGSM(loss_metric, 0.3)
 adv_attack = IFGSM(loss_metric, epsilon = 0.3, iters = args.iters, alpha=0.3)
+if args.fgsm:
+    adv_attack = FGSM(loss_metric, 0.3)
 
 ###                 ###
 ### Attractor Algs. ###
